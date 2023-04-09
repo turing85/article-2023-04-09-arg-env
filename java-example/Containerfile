@@ -1,0 +1,43 @@
+ARG TEMURIN_VERSION=""
+ARG DISTROLESS_JRE_VERSION=""
+ARG UBI_JRE_VERSION=""
+
+ARG DEFAULT_GREETING="default"
+
+FROM docker.io/eclipse-temurin:${TEMURIN_VERSION:-17.0.6_10}-jdk-alpine AS builder
+RUN mkdir /project
+WORKDIR /project
+COPY . .
+RUN ./mvnw package
+
+FROM builder AS alpine-jdk-runner
+ARG DEFAULT_GREETING="default"
+ENV GREETING=${DEFAULT_GREETING}
+ENTRYPOINT [ "java", "-jar", "target/article-2023-04-09-arg-env-1.0-SNAPSHOT.jar" ]
+
+FROM docker.io/eclipse-temurin:${TEMURIN_VERSION:-17.0.6_10}-jre-alpine AS alpine-runner
+ARG DEFAULT_GREETING="default"
+ENV GREETING=${DEFAULT_GREETING}
+COPY \
+  --from=builder \
+  --chmod=444 \
+  /project/target/*.jar app.jar
+ENTRYPOINT [ "java", "-jar", "app.jar" ]
+
+FROM gcr.io/distroless/java17:${DISTROLESS_JRE_VERSION:-"nonroot"} AS distroless-runner
+ARG DEFAULT_GREETING="default"
+ENV GREETING=${DEFAULT_GREETING}
+COPY \
+  --from=builder \
+  --chmod=444 \
+  /project/target/*.jar app.jar
+ENTRYPOINT [ "java", "-jar", "app.jar" ]
+
+FROM registry.access.redhat.com/ubi8/openjdk-17-runtime:${UBI_JRE_VERSION:-"1.15"} AS ubi-runner
+ARG DEFAULT_GREETING="default"
+ENV GREETING=${DEFAULT_GREETING}
+COPY \
+  --from=builder \
+  --chmod=444 \
+  /project/target/*.jar app.jar
+ENTRYPOINT [ "java", "-jar", "app.jar" ]

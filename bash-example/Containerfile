@@ -1,0 +1,13 @@
+ARG TAG=""
+FROM docker.io/ubuntu:${TAG:-22.04}
+ENV BAR="bar"
+ARG TAG
+ENV TAG_AS_ENV=${TAG:-22.04}
+ENTRYPOINT [ "/bin/bash", "-c", \
+  "cat /etc/lsb-release &&\
+  echo \"-----\n\
+BAR=${BAR:-<empty>}\n\
+TAG=${TAG:-<empty>}\n\
+TAG_AS_ENV=${TAG_AS_ENV:-<empty>}\n\
+\"" \
+]
